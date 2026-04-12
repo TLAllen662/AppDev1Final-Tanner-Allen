@@ -1,0 +1,383 @@
+{
+  "info": {
+    "name": "AppDev1Final-Tanner-Allen API",
+    "description": "Postman documentation for MVP API. Includes authentication and full CRUD examples for Users, Events, Groups, and Attendance.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "organizerToken", "value": "" },
+    { "key": "userToken", "value": "" },
+    { "key": "userId", "value": "1" },
+    { "key": "eventId", "value": "1" },
+    { "key": "groupId", "value": "1" },
+    { "key": "attendanceId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Organizer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Organizer\",\n  \"email\": \"jane.organizer@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"organizer\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"id\": 1,\n  \"name\": \"Jane Organizer\",\n  \"email\": \"jane.organizer@example.com\",\n  \"role\": \"organizer\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alex User\",\n  \"email\": \"alex.user@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"user\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/register"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"id\": 2,\n  \"name\": \"Alex User\",\n  \"email\": \"alex.user@example.com\",\n  \"role\": \"user\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login Organizer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('organizerToken', json.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.organizer@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"token\": \"<jwt-token>\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('userToken', json.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alex.user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"token\": \"<jwt-token>\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users CRUD",
+      "item": [
+        {
+          "name": "GET /api/users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{organizerToken}}" }],
+            "url": "{{baseUrl}}/api/users"
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "[{\n  \"id\": 1,\n  \"name\": \"Jane Organizer\",\n  \"email\": \"jane.organizer@example.com\",\n  \"role\": \"organizer\"\n}]" }]
+        },
+        {
+          "name": "GET /api/users/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{organizerToken}}" }],
+            "url": "{{baseUrl}}/api/users/{{userId}}"
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\n  \"id\": 1,\n  \"name\": \"Jane Organizer\",\n  \"email\": \"jane.organizer@example.com\",\n  \"role\": \"organizer\"\n}" }]
+        },
+        {
+          "name": "POST /api/users",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Chris Member\",\n  \"email\": \"chris.member@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"user\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users"
+          },
+          "response": [{ "name": "201 Created", "status": "Created", "code": 201, "body": "{\n  \"id\": 3,\n  \"name\": \"Chris Member\",\n  \"email\": \"chris.member@example.com\",\n  \"role\": \"user\"\n}" }]
+        },
+        {
+          "name": "PUT /api/users/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Organizer Updated\"\n}"
+            },
+            "url": "{{baseUrl}}/api/users/{{userId}}"
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\n  \"id\": 1,\n  \"name\": \"Jane Organizer Updated\",\n  \"email\": \"jane.organizer@example.com\",\n  \"role\": \"organizer\"\n}" }]
+        },
+        {
+          "name": "DELETE /api/users/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{organizerToken}}" }],
+            "url": "{{baseUrl}}/api/users/{{userId}}"
+          },
+          "response": [{ "name": "204 No Content", "status": "No Content", "code": 204, "body": "" }]
+        }
+      ]
+    },
+    {
+      "name": "Events CRUD",
+      "item": [
+        {
+          "name": "GET /api/events",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{organizerToken}}" }],
+            "url": "{{baseUrl}}/api/events"
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "[{\n  \"id\": 1,\n  \"name\": \"JavaScript Meetup\",\n  \"location\": \"Main Hall\"\n}]" }]
+        },
+        {
+          "name": "GET /api/events/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{organizerToken}}" }],
+            "url": "{{baseUrl}}/api/events/{{eventId}}"
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\n  \"id\": 1,\n  \"name\": \"JavaScript Meetup\",\n  \"organizer\": {\n    \"id\": 1,\n    \"name\": \"Jane Organizer\"\n  }\n}" }]
+        },
+        {
+          "name": "POST /api/events",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"JavaScript Meetup\",\n  \"location\": \"Main Hall\",\n  \"date\": \"2026-05-20\",\n  \"time\": \"18:00:00\",\n  \"description\": \"Weekly developer meetup\"\n}"
+            },
+            "url": "{{baseUrl}}/api/events"
+          },
+          "response": [{ "name": "201 Created", "status": "Created", "code": 201, "body": "{\n  \"id\": 1,\n  \"organizerId\": 1,\n  \"name\": \"JavaScript Meetup\"\n}" }]
+        },
+        {
+          "name": "PUT /api/events/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"location\": \"Updated Hall\"\n}"
+            },
+            "url": "{{baseUrl}}/api/events/{{eventId}}"
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\n  \"id\": 1,\n  \"location\": \"Updated Hall\"\n}" }]
+        },
+        {
+          "name": "DELETE /api/events/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{organizerToken}}" }],
+            "url": "{{baseUrl}}/api/events/{{eventId}}"
+          },
+          "response": [{ "name": "204 No Content", "status": "No Content", "code": 204, "body": "" }]
+        }
+      ]
+    },
+    {
+      "name": "Groups CRUD",
+      "item": [
+        {
+          "name": "GET /api/groups",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{organizerToken}}" }],
+            "url": "{{baseUrl}}/api/groups"
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "[{\n  \"id\": 1,\n  \"name\": \"Tech Study Circle\"\n}]" }]
+        },
+        {
+          "name": "GET /api/groups/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{organizerToken}}" }],
+            "url": "{{baseUrl}}/api/groups/{{groupId}}"
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\n  \"id\": 1,\n  \"name\": \"Tech Study Circle\",\n  \"events\": []\n}" }]
+        },
+        {
+          "name": "POST /api/groups",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tech Study Circle\"\n}"
+            },
+            "url": "{{baseUrl}}/api/groups"
+          },
+          "response": [{ "name": "201 Created", "status": "Created", "code": 201, "body": "{\n  \"id\": 1,\n  \"name\": \"Tech Study Circle\",\n  \"creatorId\": 1\n}" }]
+        },
+        {
+          "name": "PUT /api/groups/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tech Study Circle Updated\"\n}"
+            },
+            "url": "{{baseUrl}}/api/groups/{{groupId}}"
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\n  \"id\": 1,\n  \"name\": \"Tech Study Circle Updated\"\n}" }]
+        },
+        {
+          "name": "DELETE /api/groups/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{organizerToken}}" }],
+            "url": "{{baseUrl}}/api/groups/{{groupId}}"
+          },
+          "response": [{ "name": "204 No Content", "status": "No Content", "code": 204, "body": "" }]
+        }
+      ]
+    },
+    {
+      "name": "Attendance CRUD",
+      "item": [
+        {
+          "name": "GET /api/attendance",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{organizerToken}}" }],
+            "url": "{{baseUrl}}/api/attendance"
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "[{\n  \"id\": 1,\n  \"userId\": 2,\n  \"eventId\": 1\n}]" }]
+        },
+        {
+          "name": "GET /api/attendance/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{organizerToken}}" }],
+            "url": "{{baseUrl}}/api/attendance/{{attendanceId}}"
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\n  \"id\": 1,\n  \"userId\": 2,\n  \"eventId\": 1\n}" }]
+        },
+        {
+          "name": "POST /api/attendance",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": {{eventId}}\n}"
+            },
+            "url": "{{baseUrl}}/api/attendance"
+          },
+          "response": [{ "name": "201 Created", "status": "Created", "code": 201, "body": "{\n  \"id\": 1,\n  \"userId\": 2,\n  \"eventId\": 1\n}" }]
+        },
+        {
+          "name": "PUT /api/attendance/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{organizerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": {{eventId}}\n}"
+            },
+            "url": "{{baseUrl}}/api/attendance/{{attendanceId}}"
+          },
+          "response": [{ "name": "200 OK", "status": "OK", "code": 200, "body": "{\n  \"id\": 1,\n  \"userId\": 2,\n  \"eventId\": 1\n}" }]
+        },
+        {
+          "name": "DELETE /api/attendance/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": "{{baseUrl}}/api/attendance/{{attendanceId}}"
+          },
+          "response": [{ "name": "204 No Content", "status": "No Content", "code": 204, "body": "" }]
+        }
+      ]
+    }
+  ]
+}
