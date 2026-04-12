@@ -3,14 +3,25 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User } = require('../database');
+const { isNonEmptyString, isValidEmail, validationError } = require('../middleware/validationHelpers');
 
 const router = express.Router();
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   const { name, email, password, role } = req.body;
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: 'name, email, and password are required' });
+  const details = [];
+
+  if (!isNonEmptyString(name)) details.push('name is required and must be a non-empty string');
+  if (!isValidEmail(email)) details.push('email is required and must be a valid email address');
+  if (!isNonEmptyString(password) || password.length < 8) details.push('password is required and must be at least 8 characters');
+
+  if (details.length > 0) {
+    return validationError(res, details);
+  }
+
+  if (role !== undefined && role !== 'user' && role !== 'organizer') {
+    return validationError(res, ['role must be either user or organizer']);
   }
 
   const existing = await User.findOne({ where: { email } });
@@ -32,8 +43,13 @@ router.post('/register', async (req, res) => {
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: 'email and password are required' });
+  const details = [];
+
+  if (!isValidEmail(email)) details.push('email is required and must be a valid email address');
+  if (!isNonEmptyString(password)) details.push('password is required and must be a non-empty string');
+
+  if (details.length > 0) {
+    return validationError(res, details);
   }
 
   const user = await User.findOne({ where: { email } });

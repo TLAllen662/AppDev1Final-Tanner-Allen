@@ -3,6 +3,7 @@ const express = require('express');
 const { Attendance, Event, User } = require('../database');
 const { authenticate } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validateId');
+const { isPositiveInteger, validationError } = require('../middleware/validationHelpers');
 
 const router = express.Router();
 
@@ -43,7 +44,14 @@ router.post('/', authenticate, async (req, res) => {
   const userId = req.user.role === 'organizer' && requestedUserId ? requestedUserId : req.user.id;
   const { eventId } = req.body;
 
-  if (!eventId) return res.status(400).json({ error: 'eventId is required' });
+  const details = [];
+  if (!isPositiveInteger(eventId)) details.push('eventId is required and must be a positive integer');
+  if (requestedUserId !== undefined && req.user.role === 'organizer' && !isPositiveInteger(requestedUserId)) {
+    details.push('userId must be a positive integer when provided');
+  }
+  if (details.length > 0) {
+    return validationError(res, details);
+  }
 
   const [user, event] = await Promise.all([
     User.findByPk(userId),
@@ -72,6 +80,17 @@ router.put('/:id', authenticate, validateIdParam('id'), async (req, res) => {
   }
 
   const { eventId, userId } = req.body;
+  const details = [];
+  if (eventId !== undefined && !isPositiveInteger(eventId)) {
+    details.push('eventId must be a positive integer when provided');
+  }
+  if (userId !== undefined && isOrganizer && !isPositiveInteger(userId)) {
+    details.push('userId must be a positive integer when provided');
+  }
+  if (details.length > 0) {
+    return validationError(res, details);
+  }
+
   const nextUserId = isOrganizer && userId ? userId : record.userId;
   const nextEventId = eventId || record.eventId;
 

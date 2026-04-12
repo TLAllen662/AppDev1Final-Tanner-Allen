@@ -4,6 +4,11 @@ const bcrypt = require('bcryptjs');
 const { User } = require('../database');
 const { authenticate } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validateId');
+const {
+  isNonEmptyString,
+  isValidEmail,
+  validationError,
+} = require('../middleware/validationHelpers');
 
 const router = express.Router();
 
@@ -47,8 +52,17 @@ router.post('/', authenticate, async (req, res) => {
   }
 
   const { name, email, password, role } = req.body;
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: 'name, email, and password are required' });
+  const details = [];
+
+  if (!isNonEmptyString(name)) details.push('name is required and must be a non-empty string');
+  if (!isValidEmail(email)) details.push('email is required and must be a valid email address');
+  if (!isNonEmptyString(password) || password.length < 8) details.push('password is required and must be at least 8 characters');
+  if (role !== undefined && role !== 'organizer' && role !== 'user') {
+    details.push('role must be either organizer or user when provided');
+  }
+
+  if (details.length > 0) {
+    return validationError(res, details);
   }
 
   const existing = await User.findOne({ where: { email } });
@@ -80,18 +94,41 @@ router.put('/:id', authenticate, validateIdParam('id'), async (req, res) => {
 
   const updates = {};
   const { name, email, password, role } = req.body;
+  const details = [];
 
-  if (name !== undefined) updates.name = name;
+  if (name !== undefined) {
+    if (!isNonEmptyString(name)) {
+      details.push('name must be a non-empty string when provided');
+    } else {
+      updates.name = name;
+    }
+  }
   if (email !== undefined) {
+    if (!isValidEmail(email)) {
+      details.push('email must be a valid email address when provided');
+    }
     const existing = await User.findOne({ where: { email } });
     if (existing && existing.id !== targetId) {
       return res.status(409).json({ error: 'Email already in use' });
     }
     updates.email = email;
   }
-  if (password !== undefined) updates.passwordHash = await bcrypt.hash(password, 12);
+  if (password !== undefined) {
+    if (!isNonEmptyString(password) || password.length < 8) {
+      details.push('password must be at least 8 characters when provided');
+    } else {
+      updates.passwordHash = await bcrypt.hash(password, 12);
+    }
+  }
   if (isOrganizer && role !== undefined) {
+    if (role !== 'organizer' && role !== 'user') {
+      details.push('role must be either organizer or user when provided');
+    }
     updates.role = role === 'organizer' ? 'organizer' : 'user';
+  }
+
+  if (details.length > 0) {
+    return validationError(res, details);
   }
 
   if (Object.keys(updates).length === 0) {

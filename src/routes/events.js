@@ -4,6 +4,13 @@ const { Event, User, Attendance } = require('../database');
 const { authenticate } = require('../middleware/auth');
 const { authorize } = require('../middleware/authorize');
 const { validateIdParam } = require('../middleware/validateId');
+const {
+  isNonEmptyString,
+  isPositiveInteger,
+  isValidDateOnly,
+  isValidTime,
+  validationError,
+} = require('../middleware/validationHelpers');
 
 const router = express.Router();
 
@@ -28,8 +35,21 @@ router.get('/:id', authenticate, validateIdParam('id'), async (req, res) => {
 // POST /api/events - organizers only
 router.post('/', authenticate, authorize('organizer'), async (req, res) => {
   const { name, location, date, time, description, groupId } = req.body;
-  if (!name || !location || !date || !time) {
-    return res.status(400).json({ error: 'name, location, date, and time are required' });
+  const details = [];
+
+  if (!isNonEmptyString(name)) details.push('name is required and must be a non-empty string');
+  if (!isNonEmptyString(location)) details.push('location is required and must be a non-empty string');
+  if (!isValidDateOnly(date)) details.push('date is required and must use YYYY-MM-DD format');
+  if (!isValidTime(time)) details.push('time is required and must use HH:MM or HH:MM:SS format');
+  if (description !== undefined && description !== null && typeof description !== 'string') {
+    details.push('description must be a string when provided');
+  }
+  if (groupId !== undefined && groupId !== null && !isPositiveInteger(groupId)) {
+    details.push('groupId must be a positive integer when provided');
+  }
+
+  if (details.length > 0) {
+    return validationError(res, details);
   }
   const event = await Event.create({
     organizerId: req.user.id,
@@ -52,6 +72,23 @@ router.put('/:id', authenticate, authorize('organizer'), validateIdParam('id'), 
   }
 
   const { name, location, date, time, description, groupId } = req.body;
+  const details = [];
+
+  if (name !== undefined && !isNonEmptyString(name)) details.push('name must be a non-empty string when provided');
+  if (location !== undefined && !isNonEmptyString(location)) details.push('location must be a non-empty string when provided');
+  if (date !== undefined && !isValidDateOnly(date)) details.push('date must use YYYY-MM-DD format when provided');
+  if (time !== undefined && !isValidTime(time)) details.push('time must use HH:MM or HH:MM:SS format when provided');
+  if (description !== undefined && description !== null && typeof description !== 'string') {
+    details.push('description must be a string when provided');
+  }
+  if (groupId !== undefined && groupId !== null && !isPositiveInteger(groupId)) {
+    details.push('groupId must be a positive integer when provided');
+  }
+
+  if (details.length > 0) {
+    return validationError(res, details);
+  }
+
   await event.update({ name, location, date, time, description, groupId });
   return res.json(event);
 });

@@ -31,6 +31,24 @@ function errorHandler(err, req, res, next) {
     });
   }
 
+  if (err && (
+    err.name === 'SequelizeConnectionError' ||
+    err.name === 'SequelizeConnectionRefusedError' ||
+    err.name === 'SequelizeHostNotReachableError'
+  )) {
+    return res.status(503).json({
+      error: 'Database connection error',
+      details: ['Unable to connect to the database at this time.'],
+    });
+  }
+
+  if (err && err.name === 'SequelizeDatabaseError') {
+    return res.status(500).json({
+      error: 'Database operation failed',
+      details: [err.message],
+    });
+  }
+
   const statusCode = err && Number.isInteger(err.statusCode) ? err.statusCode : 500;
   const message = statusCode >= 500 ? 'Internal server error' : (err.message || 'Request failed');
 
