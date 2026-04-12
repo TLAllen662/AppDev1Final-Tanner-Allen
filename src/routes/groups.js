@@ -27,6 +27,21 @@ router.post('/', authenticate, authorize('organizer'), async (req, res) => {
   return res.status(201).json(group);
 });
 
+// PUT /api/groups/:id - creator only
+router.put('/:id', authenticate, authorize('organizer'), async (req, res) => {
+  const group = await Group.findByPk(req.params.id);
+  if (!group) return res.status(404).json({ error: 'Group not found' });
+  if (group.creatorId !== req.user.id) {
+    return res.status(403).json({ error: 'You can only edit your own groups' });
+  }
+
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'name is required' });
+
+  await group.update({ name });
+  return res.json(group);
+});
+
 // DELETE /api/groups/:id - creator only
 router.delete('/:id', authenticate, authorize('organizer'), async (req, res) => {
   const group = await Group.findByPk(req.params.id);
