@@ -1,0 +1,62 @@
+'use strict';
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test-secret';
+
+const request = require('supertest');
+const app = require('../src/app');
+const { sequelize } = require('../src/database');
+
+beforeAll(async () => {
+  await sequelize.sync({ force: true });
+});
+
+afterAll(async () => {
+  await sequelize.close();
+});
+
+describe('Health check', () => {
+  it('GET /health returns 200', async () => {
+    const res = await request(app).get('/health');
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status).toBe('ok');
+  });
+});
+
+describe('Auth routes', () => {
+  it('POST /api/auth/register creates a new user', async () => {
+    const res = await request(app).post('/api/auth/register').send({
+      name: 'Alice',
+      email: 'alice@example.com',
+      password: 'password123',
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.body).toHaveProperty('id');
+    expect(res.body.role).toBe('user');
+  });
+
+  it('POST /api/auth/register rejects duplicate email', async () => {
+    const res = await request(app).post('/api/auth/register').send({
+      name: 'Alice Again',
+      email: 'alice@example.com',
+      password: 'password123',
+    });
+    expect(res.statusCode).toBe(409);
+  });
+
+  it('POST /api/auth/login returns a token', async () => {
+    const res = await request(app).post('/api/auth/login').send({
+      email: 'alice@example.com',
+      password: 'password123',
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('token');
+  });
+
+  it('POST /api/auth/login rejects bad password', async () => {
+    const res = await request(app).post('/api/auth/login').send({
+      email: 'alice@example.com',
+      password: 'wrongpassword',
+    });
+    expect(res.statusCode).toBe(401);
+  });
+});
