@@ -3,6 +3,7 @@ const express = require('express');
 const { Event, User, Attendance } = require('../database');
 const { authenticate } = require('../middleware/auth');
 const { authorize } = require('../middleware/authorize');
+const { validateIdParam } = require('../middleware/validateId');
 
 const router = express.Router();
 
@@ -13,7 +14,7 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // GET /api/events/:id
-router.get('/:id', authenticate, async (req, res) => {
+router.get('/:id', authenticate, validateIdParam('id'), async (req, res) => {
   const event = await Event.findByPk(req.params.id, {
     include: [
       { model: User, as: 'organizer', attributes: ['id', 'name'] },
@@ -43,7 +44,7 @@ router.post('/', authenticate, authorize('organizer'), async (req, res) => {
 });
 
 // PUT /api/events/:id - organizer who created it only
-router.put('/:id', authenticate, authorize('organizer'), async (req, res) => {
+router.put('/:id', authenticate, authorize('organizer'), validateIdParam('id'), async (req, res) => {
   const event = await Event.findByPk(req.params.id);
   if (!event) return res.status(404).json({ error: 'Event not found' });
   if (event.organizerId !== req.user.id) {
@@ -56,7 +57,7 @@ router.put('/:id', authenticate, authorize('organizer'), async (req, res) => {
 });
 
 // DELETE /api/events/:id - organizer who created it only
-router.delete('/:id', authenticate, authorize('organizer'), async (req, res) => {
+router.delete('/:id', authenticate, authorize('organizer'), validateIdParam('id'), async (req, res) => {
   const event = await Event.findByPk(req.params.id);
   if (!event) return res.status(404).json({ error: 'Event not found' });
   if (event.organizerId !== req.user.id) {

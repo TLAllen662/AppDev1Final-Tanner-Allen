@@ -2,6 +2,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { requestLogger } = require('./middleware/logger');
+const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -13,6 +15,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(requestLogger);
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
@@ -25,14 +28,9 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/groups', groupRoutes);
 
 // 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
-});
+app.use(notFoundHandler);
 
 // Global error handler
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ error: 'Internal server error' });
-});
+app.use(errorHandler);
 
 module.exports = app;

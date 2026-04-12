@@ -3,6 +3,7 @@ const express = require('express');
 const { Group } = require('../database');
 const { authenticate } = require('../middleware/auth');
 const { authorize } = require('../middleware/authorize');
+const { validateIdParam } = require('../middleware/validateId');
 
 const router = express.Router();
 
@@ -13,7 +14,7 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // GET /api/groups/:id
-router.get('/:id', authenticate, async (req, res) => {
+router.get('/:id', authenticate, validateIdParam('id'), async (req, res) => {
   const group = await Group.findByPk(req.params.id, { include: ['events'] });
   if (!group) return res.status(404).json({ error: 'Group not found' });
   return res.json(group);
@@ -28,7 +29,7 @@ router.post('/', authenticate, authorize('organizer'), async (req, res) => {
 });
 
 // PUT /api/groups/:id - creator only
-router.put('/:id', authenticate, authorize('organizer'), async (req, res) => {
+router.put('/:id', authenticate, authorize('organizer'), validateIdParam('id'), async (req, res) => {
   const group = await Group.findByPk(req.params.id);
   if (!group) return res.status(404).json({ error: 'Group not found' });
   if (group.creatorId !== req.user.id) {
@@ -43,7 +44,7 @@ router.put('/:id', authenticate, authorize('organizer'), async (req, res) => {
 });
 
 // DELETE /api/groups/:id - creator only
-router.delete('/:id', authenticate, authorize('organizer'), async (req, res) => {
+router.delete('/:id', authenticate, authorize('organizer'), validateIdParam('id'), async (req, res) => {
   const group = await Group.findByPk(req.params.id);
   if (!group) return res.status(404).json({ error: 'Group not found' });
   if (group.creatorId !== req.user.id) {
