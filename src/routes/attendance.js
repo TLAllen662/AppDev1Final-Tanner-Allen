@@ -2,6 +2,7 @@
 const express = require('express');
 const { Attendance, Event, User } = require('../database');
 const { authenticate } = require('../middleware/auth');
+const { validateIdParam } = require('../middleware/validateId');
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // GET /api/attendance/:id
-router.get('/:id', authenticate, async (req, res) => {
+router.get('/:id', authenticate, validateIdParam('id'), async (req, res) => {
   const record = await Attendance.findByPk(req.params.id, {
     include: [
       { model: User, as: 'user', attributes: ['id', 'name', 'email'] },
@@ -60,7 +61,7 @@ router.post('/', authenticate, async (req, res) => {
 });
 
 // PUT /api/attendance/:id
-router.put('/:id', authenticate, async (req, res) => {
+router.put('/:id', authenticate, validateIdParam('id'), async (req, res) => {
   const record = await Attendance.findByPk(req.params.id);
   if (!record) return res.status(404).json({ error: 'Attendance record not found' });
 
@@ -94,7 +95,7 @@ router.put('/:id', authenticate, async (req, res) => {
 });
 
 // DELETE /api/attendance/:id
-router.delete('/:id', authenticate, async (req, res) => {
+router.delete('/:id', authenticate, validateIdParam('id'), async (req, res) => {
   const record = await Attendance.findByPk(req.params.id);
   if (!record) return res.status(404).json({ error: 'Attendance record not found' });
 

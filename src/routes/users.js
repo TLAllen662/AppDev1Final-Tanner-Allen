@@ -3,6 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { User } = require('../database');
 const { authenticate } = require('../middleware/auth');
+const { validateIdParam } = require('../middleware/validateId');
 
 const router = express.Router();
 
@@ -28,7 +29,7 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 // GET /api/users/:id
-router.get('/:id', authenticate, async (req, res) => {
+router.get('/:id', authenticate, validateIdParam('id'), async (req, res) => {
   const targetId = Number(req.params.id);
   if (req.user.role !== 'organizer' && req.user.id !== targetId) {
     return res.status(403).json({ error: 'Forbidden: insufficient permissions' });
@@ -65,7 +66,7 @@ router.post('/', authenticate, async (req, res) => {
 });
 
 // PUT /api/users/:id
-router.put('/:id', authenticate, async (req, res) => {
+router.put('/:id', authenticate, validateIdParam('id'), async (req, res) => {
   const targetId = Number(req.params.id);
   const isOrganizer = req.user.role === 'organizer';
   const isSelf = req.user.id === targetId;
@@ -102,7 +103,7 @@ router.put('/:id', authenticate, async (req, res) => {
 });
 
 // DELETE /api/users/:id
-router.delete('/:id', authenticate, async (req, res) => {
+router.delete('/:id', authenticate, validateIdParam('id'), async (req, res) => {
   const targetId = Number(req.params.id);
   const isOrganizer = req.user.role === 'organizer';
   const isSelf = req.user.id === targetId;
