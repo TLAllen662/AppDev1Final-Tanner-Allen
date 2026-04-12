@@ -1,6 +1,9 @@
 'use strict';
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-secret';
+const path = require('path');
+const fs = require('fs');
+process.env.DB_STORAGE = path.join(__dirname, 'auth.test.sqlite');
 
 const request = require('supertest');
 const app = require('../src/app');
@@ -12,6 +15,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await sequelize.close();
+  if (fs.existsSync(process.env.DB_STORAGE)) {
+    fs.unlinkSync(process.env.DB_STORAGE);
+  }
 });
 
 describe('Health check', () => {
