@@ -1,17 +1,8 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
-if [ -z "${BASH_VERSION:-}" ]; then
-  if command -v bash >/dev/null 2>&1; then
-    exec bash "$0" "$@"
-  else
-    echo "This script requires bash. Run bash $0 <BASE_URL>" >&2
-    exit 1
-  fi
-fi
+set -eu
 
-set -euo pipefail
-
-if [[ $# -lt 1 ]]; then
+if [ "$#" -lt 1 ]; then
   echo "Usage $0 <BASE_URL>"
   echo "Example $0 https://appdev1final-api.onrender.com"
   exit 1
@@ -40,10 +31,10 @@ print_fail() {
 }
 
 expect_status() {
-  local name="$1"
-  local expected="$2"
-  local status="$3"
-  if [[ "$status" == "$expected" ]]; then
+  name="$1"
+  expected="$2"
+  status="$3"
+  if [ "$status" = "$expected" ]; then
     print_pass "$name (status $status)"
     return 0
   fi
@@ -52,7 +43,7 @@ expect_status() {
 }
 
 json_get() {
-  local field="$1"
+  field="$1"
   node -e "
 let data='';
 process.stdin.on('data', c => data += c);
@@ -73,19 +64,17 @@ process.stdin.on('end', () => {
 }
 
 request() {
-  local method="$1"
-  local path="$2"
-  local body="${3:-}"
-  local auth="${4:-}"
-  local tmpfile
+  method="$1"
+  path="$2"
+  body="${3-}"
+  auth="${4-}"
   tmpfile="$(mktemp)"
 
-  local status
-  if [[ -n "$auth" && -n "$body" ]]; then
+  if [ -n "$auth" ] && [ -n "$body" ]; then
     status=$(curl -sS -o "$tmpfile" -w "%{http_code}" -X "$method" "$BASE_URL$path" --oauth2-bearer "$auth" --json "$body")
-  elif [[ -n "$auth" ]]; then
+  elif [ -n "$auth" ]; then
     status=$(curl -sS -o "$tmpfile" -w "%{http_code}" -X "$method" "$BASE_URL$path" --oauth2-bearer "$auth")
-  elif [[ -n "$body" ]]; then
+  elif [ -n "$body" ]; then
     status=$(curl -sS -o "$tmpfile" -w "%{http_code}" -X "$method" "$BASE_URL$path" --json "$body")
   else
     status=$(curl -sS -o "$tmpfile" -w "%{http_code}" -X "$method" "$BASE_URL$path")
@@ -108,7 +97,7 @@ reg_status="${res%%|*}"
 reg_file="${res##*|}"
 expect_status "Register user" 201 "$reg_status" || true
 registered_role="$(cat "$reg_file" | json_get role)"
-if [[ "$registered_role" == "user" ]]; then
+if [ "$registered_role" = "user" ]; then
   print_pass "Registration role assignment stays user"
 else
   print_fail "Registration role assignment expected user, got ${registered_role:-<empty>}"
@@ -122,7 +111,7 @@ login_status="${res%%|*}"
 login_file="${res##*|}"
 expect_status "Login user" 200 "$login_status" || true
 USER_TOKEN="$(cat "$login_file" | json_get token)"
-if [[ -n "$USER_TOKEN" ]]; then
+if [ -n "$USER_TOKEN" ]; then
   print_pass "User token returned"
 else
   print_fail "User token missing"
@@ -148,7 +137,7 @@ for path in /api/events /api/groups /api/attendance /api/auth/validate; do
   res="$(request GET "$path" "" "$USER_TOKEN")"
   st="${res%%|*}"
   f="${res##*|}"
-  if [[ "$path" == "/api/auth/validate" ]]; then
+  if [ "$path" = "/api/auth/validate" ]; then
     # validate endpoint is POST
     rm -f "$f"
     res="$(request POST /api/auth/validate "" "$USER_TOKEN")"
@@ -156,7 +145,7 @@ for path in /api/events /api/groups /api/attendance /api/auth/validate; do
     f="${res##*|}"
   fi
 
-  if [[ "$st" == "200" ]]; then
+  if [ "$st" = "200" ]; then
     print_pass "Core endpoint $path"
   else
     print_fail "Core endpoint $path returned $st"
@@ -165,13 +154,13 @@ for path in /api/events /api/groups /api/attendance /api/auth/validate; do
 done
 
 # 7) Optional organizer checks (requires pre-existing organizer credentials)
-if [[ -n "$ORGANIZER_EMAIL" && -n "$ORGANIZER_PASSWORD" ]]; then
+if [ -n "$ORGANIZER_EMAIL" ] && [ -n "$ORGANIZER_PASSWORD" ]; then
   org_login_body="{\"email\":\"$ORGANIZER_EMAIL\",\"password\":\"$ORGANIZER_PASSWORD\"}"
   res="$(request POST /api/auth/login "$org_login_body")"
   org_login_status="${res%%|*}"
   org_login_file="${res##*|}"
 
-  if [[ "$org_login_status" == "200" ]]; then
+  if [ "$org_login_status" = "200" ]; then
     ORGANIZER_TOKEN="$(cat "$org_login_file" | json_get token)"
     print_pass "Organizer login"
 
@@ -197,6 +186,6 @@ fi
 
 echo
 echo "Summary: $PASS_COUNT passed, $FAIL_COUNT failed"
-if [[ $FAIL_COUNT -gt 0 ]]; then
+if [ "$FAIL_COUNT" -gt 0 ]; then
   exit 1
 fi
