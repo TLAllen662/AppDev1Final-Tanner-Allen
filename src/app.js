@@ -18,6 +18,14 @@ app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
 
+// Root endpoint for deployment sanity checks
+app.get('/', (req, res) => {
+	return res.json({
+		message: 'API is running',
+		health: '/health',
+	});
+});
+
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
