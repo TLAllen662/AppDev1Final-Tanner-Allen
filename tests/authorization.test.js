@@ -114,8 +114,9 @@ describe('Authorization: Role-Based Access Control', () => {
         .set('Authorization', `Bearer ${organizerToken}`);
 
       expect(res.statusCode).toBe(200);
-      expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body.length).toBeGreaterThan(0);
+        expect(Array.isArray(res.body.data)).toBe(true);
+        expect(res.body.data.length).toBeGreaterThan(0);
+        expect(res.body.pagination).toBeDefined();
     });
 
     it('No token should return 401', async () => {

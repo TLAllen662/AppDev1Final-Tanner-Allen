@@ -1,13 +1,17 @@
 'use strict';
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { User } = require('../database');
+const { Op } = require('sequelize');
+const { User, Event, Attendance } = require('../database');
 const { authenticate } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validateId');
 const {
   isNonEmptyString,
   isValidEmail,
   validationError,
+  parsePaginationParams,
+  parseSortParams,
+  paginatedResponse,
 } = require('../middleware/validationHelpers');
 
 const router = express.Router();
@@ -23,14 +27,41 @@ function sanitizeUser(user) {
   };
 }
 
-// GET /api/users
+// GET /api/users - list all users with pagination and filtering (organizers only)
 router.get('/', authenticate, async (req, res) => {
   if (req.user.role !== 'organizer') {
     return res.status(403).json({ error: 'Forbidden: insufficient permissions' });
   }
 
-  const users = await User.findAll();
-  return res.json(users.map(sanitizeUser));
+  const { limit, offset } = parsePaginationParams(req.query);
+  const sort = parseSortParams(req.query.sort, ['name', 'email', 'role', 'createdAt']);
+
+  // Build where clause for search and filtering
+  const where = {};
+
+  // Search filter
+  if (req.query.search) {
+    where[Op.or] = [
+      { name: { [Op.like]: `%${req.query.search}%` } },
+      { email: { [Op.like]: `%${req.query.search}%` } },
+    ];
+  }
+
+  // Role filter
+  if (req.query.role && ['user', 'organizer'].includes(req.query.role)) {
+    where.role = req.query.role;
+  }
+
+  const { count, rows } = await User.findAndCountAll({
+    where,
+    limit,
+    offset,
+    order: sort.length ? sort : [['name', 'ASC']],
+    attributes: { exclude: ['passwordHash'] },
+    distinct: true,
+  });
+
+  return res.json(paginatedResponse(rows.map(sanitizeUser), count, limit, offset));
 });
 
 // GET /api/users/:id
@@ -154,6 +185,96 @@ router.delete('/:id', authenticate, validateIdParam('id'), async (req, res) => {
 
   await user.destroy();
   return res.status(204).send();
+});
+
+// GET /api/users/:id/events - events organized by user with pagination
+router.get('/:id/events', authenticate, validateIdParam('id'), async (req, res) => {
+  const user = await User.findByPk(req.params.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const { limit, offset } = parsePaginationParams(req.query);
+  const sort = parseSortParams(req.query.sort, ['date', 'name', 'createdAt']);
+
+  const { count, rows } = await Event.findAndCountAll({
+    where: { organizerId: req.params.id },
+    limit,
+    offset,
+    order: sort.length ? sort : [['date', 'ASC']],
+    distinct: true,
+  });
+
+  return res.json({
+    organizer: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      eventCount: count,
+    },
+    events: paginatedResponse(rows, count, limit, offset),
+  });
+});
+
+// GET /api/users/:id/attendance - events user is attending with pagination
+router.get('/:id/attendance', authenticate, validateIdParam('id'), async (req, res) => {
+  const user = await User.findByPk(req.params.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  // Check permission: user can view own, organizers can view anyone
+  if (req.user.id !== Number(req.params.id) && req.user.role !== 'organizer') {
+    return res.status(403).json({ error: 'Forbidden: cannot view other users attendance' });
+  }
+
+  const { limit, offset } = parsePaginationParams(req.query);
+  const sort = parseSortParams(req.query.sort, ['date', 'name', 'createdAt']);
+
+  const { count, rows } = await Attendance.findAndCountAll({
+    where: { userId: req.params.id },
+    include: [{
+      model: Event,
+      as: 'event',
+      attributes: ['id', 'name', 'date', 'time', 'location', 'organizerId'],
+    }],
+    limit,
+    offset,
+    order: sort.length ? sort : [['createdAt', 'DESC']],
+    distinct: true,
+  });
+
+  return res.json({
+    attendee: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      attendingCount: count,
+    },
+    events: paginatedResponse(rows.map(a => a.event), count, limit, offset),
+  });
+});
+
+// GET /api/users/:id/stats - get user statistics (events organized, events attended, profile info)
+router.get('/:id/stats', authenticate, validateIdParam('id'), async (req, res) => {
+  const user = await User.findByPk(req.params.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  // Check permission
+  if (req.user.id !== Number(req.params.id) && req.user.role !== 'organizer') {
+    return res.status(403).json({ error: 'Forbidden: cannot view other users stats' });
+  }
+
+  const [eventsOrganized, eventsAttending, groupsCreated] = await Promise.all([
+    Event.count({ where: { organizerId: req.params.id } }),
+    Attendance.count({ where: { userId: req.params.id } }),
+    user.role === 'organizer' ? require('../database/index').Group.count({ where: { creatorId: req.params.id } }) : Promise.resolve(0),
+  ]);
+
+  return res.json({
+    user: sanitizeUser(user),
+    statistics: {
+      eventsOrganized: user.role === 'organizer' ? eventsOrganized : 0,
+      eventsAttending,
+      groupsCreated: user.role === 'organizer' ? groupsCreated : 0,
+    },
+  });
 });
 
 module.exports = router;

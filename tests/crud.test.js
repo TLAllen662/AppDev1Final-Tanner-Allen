@@ -8,10 +8,13 @@ process.env.DB_STORAGE = path.join(__dirname, 'crud.test.sqlite');
 
 const request = require('supertest');
 const app = require('../src/app');
-const { sequelize } = require('../src/database');
+const { sequelize, User } = require('../src/database');
 
 async function registerAndLogin({ name, email, password, role }) {
   await request(app).post('/api/auth/register').send({ name, email, password, role });
+  if (role === 'organizer') {
+    await User.update({ role: 'organizer' }, { where: { email } });
+  }
   const loginRes = await request(app).post('/api/auth/login').send({ email, password });
   return loginRes.body.token;
 }

@@ -1,24 +1,49 @@
 'use strict';
 const express = require('express');
+const { Op } = require('sequelize');
 const { Attendance, Event, User } = require('../database');
 const { authenticate } = require('../middleware/auth');
 const { validateIdParam } = require('../middleware/validateId');
-const { isPositiveInteger, validationError } = require('../middleware/validationHelpers');
+const {
+  isPositiveInteger,
+  validationError,
+  parsePaginationParams,
+  parseSortParams,
+  paginatedResponse,
+} = require('../middleware/validationHelpers');
 
 const router = express.Router();
 
-// GET /api/attendance
+// GET /api/attendance - list attendance records with pagination
 router.get('/', authenticate, async (req, res) => {
   const where = req.user.role === 'organizer' ? {} : { userId: req.user.id };
-  const records = await Attendance.findAll({
+  
+  const { limit, offset } = parsePaginationParams(req.query);
+  const sort = parseSortParams(req.query.sort, ['createdAt', 'eventId', 'userId']);
+
+  // Filter by event if specified
+  if (req.query.eventId && isPositiveInteger(req.query.eventId)) {
+    where.eventId = Number(req.query.eventId);
+  }
+
+  // Filter by user if organizer specified it
+  if (req.query.userId && isPositiveInteger(req.query.userId) && req.user.role === 'organizer') {
+    where.userId = Number(req.query.userId);
+  }
+
+  const { count, rows } = await Attendance.findAndCountAll({
     where,
     include: [
       { model: User, as: 'user', attributes: ['id', 'name', 'email'] },
       { model: Event, as: 'event', attributes: ['id', 'name', 'date', 'time', 'location'] },
     ],
+    limit,
+    offset,
+    order: sort.length ? sort : [['createdAt', 'DESC']],
+    distinct: true,
   });
 
-  return res.json(records);
+  return res.json(paginatedResponse(rows, count, limit, offset));
 });
 
 // GET /api/attendance/:id
@@ -126,6 +151,26 @@ router.delete('/:id', authenticate, validateIdParam('id'), async (req, res) => {
 
   await record.destroy();
   return res.status(204).send();
+});
+
+// GET /api/attendance/event/:eventId/summary - get attendance summary for an event
+router.get('/event/:eventId/summary', authenticate, validateIdParam('eventId'), async (req, res) => {
+  const event = await Event.findByPk(req.params.eventId);
+  if (!event) return res.status(404).json({ error: 'Event not found' });
+
+  const attendanceCount = await Attendance.count({ where: { eventId: req.params.eventId } });
+
+  return res.json({
+    event: {
+      id: event.id,
+      name: event.name,
+      date: event.date,
+      time: event.time,
+    },
+    attendanceSummary: {
+      totalAttendees: attendanceCount,
+    },
+  });
 });
 
 module.exports = router;

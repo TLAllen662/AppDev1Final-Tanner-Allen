@@ -10,6 +10,7 @@ const userRoutes = require('./routes/users');
 const eventRoutes = require('./routes/events');
 const attendanceRoutes = require('./routes/attendance');
 const groupRoutes = require('./routes/groups');
+const statsRoutes = require('./routes/stats');
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/groups', groupRoutes);
+app.use('/api/stats', statsRoutes);
 
 // 404 handler
 app.use(notFoundHandler);
