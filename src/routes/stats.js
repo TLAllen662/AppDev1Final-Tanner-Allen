@@ -70,15 +70,14 @@ router.get('/popular-events', authenticate, async (req, res) => {
   const events = await Event.findAll({
     include: [{
       model: Attendance,
-      as: 'attendances',
+      as: 'attendanceRecords',
       attributes: [],
       required: false,
     }],
     attributes: {
-      include: [[fn('COUNT', col('attendances.id')), 'attendeeCount']],
+      include: [[fn('COUNT', col('attendanceRecords.id')), 'attendeeCount']],
     },
-    subQuery: false,
-    order: [[fn('COUNT', col('attendances.id')), 'DESC']],
+    order: [[fn('COUNT', col('attendanceRecords.id')), 'DESC']],
     subQuery: false,
     limit,
     raw: true,
@@ -142,7 +141,7 @@ router.get('/event-occupancy', authenticate, authorize('organizer'), async (req,
     where: { date: { [Op.gte]: today } },
     include: [{
       model: Attendance,
-      as: 'attendances',
+      as: 'attendanceRecords',
       attributes: ['id'],
     }],
     limit: 20,
@@ -153,7 +152,7 @@ router.get('/event-occupancy', authenticate, authorize('organizer'), async (req,
     id: e.id,
     name: e.name,
     date: e.date,
-    attendeeCount: e.attendances.length,
+    attendeeCount: e.attendanceRecords.length,
   }));
 
   return res.json({ upcomingEvents: eventStats });
