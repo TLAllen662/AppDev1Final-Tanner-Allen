@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+
+if [ -z "${BASH_VERSION:-}" ]; then
+  if command -v bash >/dev/null 2>&1; then
+    exec bash "$0" "$@"
+  else
+    echo "This script requires bash. Run: bash $0 <BASE_URL>" >&2
+    exit 1
+  fi
+fi
+
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
