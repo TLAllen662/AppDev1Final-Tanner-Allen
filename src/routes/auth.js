@@ -3,9 +3,15 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User } = require('../database');
+const { authenticate } = require('../middleware/auth');
 const { isNonEmptyString, isValidEmail, validationError } = require('../middleware/validationHelpers');
 
 const router = express.Router();
+
+// Verify JWT_SECRET is configured
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is not set. Please configure it in your .env file.');
+}
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
@@ -64,10 +70,45 @@ router.post('/login', async (req, res) => {
   const token = jwt.sign(
     { id: user.id, role: user.role },
     process.env.JWT_SECRET,
-    { expiresIn: '8h' }
+    { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
   );
 
-  return res.json({ token });
+  return res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+});
+
+// GET /api/auth/me - Get current authenticated user info
+router.get('/me', authenticate, async (req, res) => {
+  const user = await User.findByPk(req.user.id);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  return res.json({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  });
+});
+
+// POST /api/auth/validate - Validate current token
+router.post('/validate', authenticate, (req, res) => {
+  return res.json({
+    valid: true,
+    user: {
+      id: req.user.id,
+      role: req.user.role,
+    },
+  });
+});
+
+// POST /api/auth/logout - Logout endpoint (token removal is client-side)
+router.post('/logout', authenticate, (req, res) => {
+  // In JWT-based systems, logout is typically handled client-side by removing the token.
+  // This endpoint serves as a confirmation endpoint and can be extended for blacklist management if needed.
+  return res.json({ message: 'Logout successful. Please remove the token from your client.' });
 });
 
 module.exports = router;

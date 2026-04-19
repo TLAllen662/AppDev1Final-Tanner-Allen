@@ -77,14 +77,176 @@ Local development base URL:
 
 ## Authentication
 
-Protected routes require:
+The API uses JWT (JSON Web Tokens) for stateless authentication. All protected routes require an `Authorization` header with a Bearer token.
 
-`Authorization: Bearer <token>`
+### Authentication Endpoints
 
-Get a token with:
+#### 1. Register a New User
+**POST** `/api/auth/register`
 
-1. `POST /api/auth/register`
-2. `POST /api/auth/login`
+Create a new user account (automatically assigned `user` role).
+
+**Request:**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "securePassword123"
+}
+```
+
+**Response (201):**
+```json
+{
+  "id": 1,
+  "name": "John Doe",
+  "email": "john@example.com",
+  "role": "user"
+}
+```
+
+**Security Note:** The `role` parameter in the request is intentionally ignored. All new registrations start as `user` role. Organizer promotions must be done through admin-only endpoints.
+
+#### 2. Login
+**POST** `/api/auth/login`
+
+Authenticate and receive a JWT token.
+
+**Request:**
+```json
+{
+  "email": "john@example.com",
+  "password": "securePassword123"
+}
+```
+
+**Response (200):**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "user"
+  }
+}
+```
+
+#### 3. Get Current User Info
+**GET** `/api/auth/me`
+
+Retrieve information about the authenticated user.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+```json
+{
+  "id": 1,
+  "name": "John Doe",
+  "email": "john@example.com",
+  "role": "user",
+  "createdAt": "2024-01-15T10:30:00Z",
+  "updatedAt": "2024-01-15T10:30:00Z"
+}
+```
+
+#### 4. Validate Token
+**POST** `/api/auth/validate`
+
+Check if the current token is valid.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+```json
+{
+  "valid": true,
+  "user": {
+    "id": 1,
+    "role": "user"
+  }
+}
+```
+
+#### 5. Logout
+**POST** `/api/auth/logout`
+
+Confirm logout (token removal is handled client-side).
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response (200):**
+```json
+{
+  "message": "Logout successful. Please remove the token from your client."
+}
+```
+
+### Using Tokens
+
+All protected endpoints require the `Authorization` header in the following format:
+
+```
+Authorization: Bearer <your-jwt-token>
+```
+
+**Example:**
+```bash
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  http://localhost:3000/api/users
+```
+
+### Token Expiration
+
+Tokens expire after 8 hours (configurable via `JWT_EXPIRES_IN` in `.env`). When a token expires, login again to get a new one.
+
+**Error Response (401):**
+```json
+{
+  "error": "Token has expired"
+}
+```
+
+### Protected Routes Summary
+
+| Method | Route | Auth | Roles |
+|--------|-------|------|-------|
+| POST | `/api/auth/register` | ❌ | - |
+| POST | `/api/auth/login` | ❌ | - |
+| GET | `/api/auth/me` | ✅ | user, organizer |
+| POST | `/api/auth/validate` | ✅ | user, organizer |
+| POST | `/api/auth/logout` | ✅ | user, organizer |
+| GET | `/api/users` | ✅ | organizer |
+| GET | `/api/users/:id` | ✅ | organizer, self |
+| POST | `/api/users` | ✅ | organizer |
+| PUT | `/api/users/:id` | ✅ | organizer, self |
+| DELETE | `/api/users/:id` | ✅ | organizer, self |
+| GET | `/api/events` | ✅ | user, organizer |
+| GET | `/api/events/:id` | ✅ | user, organizer |
+| POST | `/api/events` | ✅ | organizer |
+| PUT | `/api/events/:id` | ✅ | organizer (owner) |
+| DELETE | `/api/events/:id` | ✅ | organizer (owner) |
+| GET | `/api/groups` | ✅ | user, organizer |
+| GET | `/api/groups/:id` | ✅ | user, organizer |
+| POST | `/api/groups` | ✅ | organizer |
+| PUT | `/api/groups/:id` | ✅ | organizer (creator) |
+| DELETE | `/api/groups/:id` | ✅ | organizer (creator) |
+| GET | `/api/attendance` | ✅ | user, organizer |
+| GET | `/api/attendance/:id` | ✅ | user, organizer |
+| POST | `/api/attendance` | ✅ | user, organizer |
+
+Protected routes
 
 ## Standard Error Format
 
