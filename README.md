@@ -175,42 +175,45 @@ curl "<RENDER_URL>/api/groups?search=Engineering" \
 	-H "Authorization: Bearer <TOKEN>"
 curl "<RENDER_URL>/api/attendance?limit=5" \
 	-H "Authorization: Bearer <TOKEN>"
-
-### 5) One-command post-deploy smoke test
-
-Important:
-
-1. `scripts/render-smoke-test.sh` is a shell script and must be run from your terminal.
-2. Do not use `scripts/render-smoke-test.sh` as a Render blueprint/spec file path.
-3. Render blueprint file path should be `render.yaml`.
-
-Run the included script after deployment:
-
-```bash
-./scripts/render-smoke-test.sh <RENDER_URL>
 ```
 
-Example:
+### 5) Blueprint file path
+
+Use only `render.yaml` as the Render blueprint/spec file.
+
+Do not upload or reference shell scripts as blueprint files.
+
+### 6) Post-deploy manual smoke test
+
+Run these commands from your local terminal after deployment:
 
 ```bash
-./scripts/render-smoke-test.sh https://appdev1final-api.onrender.com
-```
+BASE_URL="https://appdev1final-api.onrender.com"
 
-Optional organizer success-path verification (recommended):
+# Health
+curl "$BASE_URL/health"
 
-```bash
-ORGANIZER_EMAIL=your.organizer@example.com \
-ORGANIZER_PASSWORD=your-password \
-./scripts/render-smoke-test.sh https://appdev1final-api.onrender.com
-```
+# Register a test user
+curl -X POST "$BASE_URL/api/auth/register" \
+	-H "Content-Type: application/json" \
+	-d '{"name":"Smoke User","email":"smoke.user@example.com","password":"password123"}'
 
-The script validates:
+# Login
+curl -X POST "$BASE_URL/api/auth/login" \
+	-H "Content-Type: application/json" \
+	-d '{"email":"smoke.user@example.com","password":"password123"}'
 
-1. Health endpoint
-2. User registration/login/auth-me
-3. RBAC denial for organizer-only endpoints when using user token
-4. Core authenticated endpoints (`/api/events`, `/api/groups`, `/api/attendance`, `/api/auth/validate`)
-5. Organizer-only success paths when organizer credentials are provided
+# Use token from login response below
+curl "$BASE_URL/api/auth/me" -H "Authorization: Bearer <TOKEN>"
+
+# RBAC deny check (regular user should get 403)
+curl "$BASE_URL/api/users" -H "Authorization: Bearer <TOKEN>"
+
+# Core endpoint checks (expect 200)
+curl "$BASE_URL/api/events" -H "Authorization: Bearer <TOKEN>"
+curl "$BASE_URL/api/groups" -H "Authorization: Bearer <TOKEN>"
+curl "$BASE_URL/api/attendance" -H "Authorization: Bearer <TOKEN>"
+curl -X POST "$BASE_URL/api/auth/validate" -H "Authorization: Bearer <TOKEN>"
 ```
 
 ## Authentication
