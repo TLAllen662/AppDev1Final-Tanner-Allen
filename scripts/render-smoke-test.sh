@@ -4,7 +4,7 @@ if [ -z "${BASH_VERSION:-}" ]; then
   if command -v bash >/dev/null 2>&1; then
     exec bash "$0" "$@"
   else
-    echo "This script requires bash. Run: bash $0 <BASE_URL>" >&2
+    echo "This script requires bash. Run bash $0 <BASE_URL>" >&2
     exit 1
   fi
 fi
@@ -12,8 +12,8 @@ fi
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 <BASE_URL>"
-  echo "Example: $0 https://appdev1final-api.onrender.com"
+  echo "Usage $0 <BASE_URL>"
+  echo "Example $0 https://appdev1final-api.onrender.com"
   exit 1
 fi
 
