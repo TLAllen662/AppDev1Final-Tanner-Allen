@@ -14,6 +14,9 @@ const { sequelize, User, Group, Event, Attendance } = require('./index');
 
     const passwordHash = await bcrypt.hash('password123', 12);
 
+    // Create test users with different roles
+    // Organizers: can create/manage events and groups
+    // Users: can only view and attend events
     const users = await User.bulkCreate([
       {
         name: 'Maya Rodriguez',
