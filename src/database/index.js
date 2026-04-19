@@ -2,15 +2,37 @@
 const { Sequelize } = require('sequelize');
 const path = require('path');
 
-const storagePath = process.env.DB_STORAGE
-  ? path.resolve(process.env.DB_STORAGE)
-  : path.join(__dirname, '../../database.sqlite');
+const isDevelopmentLogging = process.env.NODE_ENV === 'development' ? console.log : false;
 
-const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: storagePath,
-  logging: process.env.NODE_ENV === 'development' ? console.log : false,
-});
+function createSequelizeInstance() {
+  if (process.env.DATABASE_URL) {
+    const useSsl = process.env.DB_SSL === 'true';
+    return new Sequelize(process.env.DATABASE_URL, {
+      dialect: 'postgres',
+      logging: isDevelopmentLogging,
+      dialectOptions: useSsl
+        ? {
+            ssl: {
+              require: true,
+              rejectUnauthorized: false,
+            },
+          }
+        : {},
+    });
+  }
+
+  const storagePath = process.env.DB_STORAGE
+    ? path.resolve(process.env.DB_STORAGE)
+    : path.join(__dirname, '../../database.sqlite');
+
+  return new Sequelize({
+    dialect: 'sqlite',
+    storage: storagePath,
+    logging: isDevelopmentLogging,
+  });
+}
+
+const sequelize = createSequelizeInstance();
 
 const User = require('./models/User')(sequelize);
 const Event = require('./models/Event')(sequelize);

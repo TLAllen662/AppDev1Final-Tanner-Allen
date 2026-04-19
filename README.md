@@ -75,6 +75,138 @@ Local development base URL:
 
 `http://localhost:3000`
 
+## Deploy To Render
+
+### 1) One-time setup
+
+This project supports both SQLite (local) and Postgres (production). On Render, use Postgres through `DATABASE_URL`.
+
+Two deployment options are supported:
+
+1. Blueprint deploy with `render.yaml` (recommended)
+2. Manual Web Service + Postgres setup in Render dashboard
+
+### 2) Blueprint deploy (recommended)
+
+1. Push this repository to GitHub.
+2. In Render, select **New +** -> **Blueprint**.
+3. Point to this repository.
+4. Render will create:
+	 1. A web service named `appdev1final-api`
+	 2. A Postgres database named `appdev1final-db`
+5. Confirm env vars:
+	 1. `NODE_ENV=production`
+	 2. `JWT_SECRET` (auto-generated)
+	 3. `JWT_EXPIRES_IN=8h`
+	 4. `DATABASE_URL` (from Postgres connection string)
+	 5. `DB_SSL=false` (set to `true` only if your DB endpoint requires SSL)
+
+Build/start commands:
+
+```bash
+build: npm ci
+start: npm start
+```
+
+### 3) Manual setup (alternative)
+
+1. Create a **PostgreSQL** database in Render.
+2. Create a **Web Service** from this repository.
+3. Runtime: Node.
+4. Build Command: `npm ci`
+5. Start Command: `npm start`
+6. Add the same environment variables listed above.
+
+### 4) Production verification checklist
+
+Replace `<RENDER_URL>` with your deployed URL.
+
+Health check:
+
+```bash
+curl <RENDER_URL>/health
+```
+
+Register user:
+
+```bash
+curl -X POST <RENDER_URL>/api/auth/register \
+	-H "Content-Type: application/json" \
+	-d '{"name":"Prod User","email":"prod.user@example.com","password":"password123"}'
+```
+
+Login and capture token:
+
+```bash
+curl -X POST <RENDER_URL>/api/auth/login \
+	-H "Content-Type: application/json" \
+	-d '{"email":"prod.user@example.com","password":"password123"}'
+```
+
+Auth check:
+
+```bash
+curl <RENDER_URL>/api/auth/me \
+	-H "Authorization: Bearer <TOKEN>"
+```
+
+Authorization checks:
+
+1. As `user`, call organizer-only endpoint and confirm `403`:
+
+```bash
+curl <RENDER_URL>/api/users \
+	-H "Authorization: Bearer <TOKEN>"
+```
+
+2. Create organizer (via organizer account), login as organizer, then confirm organizer-only success (`200`):
+
+```bash
+curl <RENDER_URL>/api/stats/platform \
+	-H "Authorization: Bearer <ORGANIZER_TOKEN>"
+```
+
+3. Validate expanded endpoints with auth token:
+
+```bash
+curl "<RENDER_URL>/api/events?limit=5&offset=0&sort=date:asc" \
+	-H "Authorization: Bearer <TOKEN>"
+curl "<RENDER_URL>/api/groups?search=Engineering" \
+	-H "Authorization: Bearer <TOKEN>"
+curl "<RENDER_URL>/api/attendance?limit=5" \
+	-H "Authorization: Bearer <TOKEN>"
+
+### 5) One-command post-deploy smoke test
+
+Run the included script after deployment:
+
+```bash
+./scripts/render-smoke-test.sh <RENDER_URL>
+```
+
+Example:
+
+```bash
+./scripts/render-smoke-test.sh https://appdev1final-api.onrender.com
+```
+
+Optional organizer success-path verification (recommended):
+
+```bash
+ORGANIZER_EMAIL=your.organizer@example.com \
+ORGANIZER_PASSWORD=your-password \
+./scripts/render-smoke-test.sh https://appdev1final-api.onrender.com
+```
+
+The script validates:
+
+1. Health endpoint
+2. User registration/login/auth-me
+3. RBAC denial for organizer-only endpoints when using user token
+4. Core authenticated endpoints (`/api/events`, `/api/groups`, `/api/attendance`, `/api/auth/validate`)
+5. Organizer-only success paths when organizer credentials are provided
+```
+
 ## Authentication
 
 The API uses JWT (JSON Web Tokens) for stateless authentication. All protected routes require an `Authorization` header with a Bearer token.
