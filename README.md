@@ -178,6 +178,12 @@ curl "<RENDER_URL>/api/attendance?limit=5" \
 
 ### 5) One-command post-deploy smoke test
 
+Important:
+
+1. `scripts/render-smoke-test.sh` is a shell script and must be run from your terminal.
+2. Do not use `scripts/render-smoke-test.sh` as a Render blueprint/spec file path.
+3. Render blueprint file path should be `render.yaml`.
+
 Run the included script after deployment:
 
 ```bash
