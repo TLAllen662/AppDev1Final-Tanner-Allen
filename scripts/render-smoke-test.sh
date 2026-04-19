@@ -82,11 +82,11 @@ request() {
 
   local status
   if [[ -n "$auth" && -n "$body" ]]; then
-    status=$(curl -sS -o "$tmpfile" -w "%{http_code}" -X "$method" "$BASE_URL$path" -H "Authorization: Bearer $auth" -H "Content-Type: application/json" -d "$body")
+    status=$(curl -sS -o "$tmpfile" -w "%{http_code}" -X "$method" "$BASE_URL$path" --oauth2-bearer "$auth" --json "$body")
   elif [[ -n "$auth" ]]; then
-    status=$(curl -sS -o "$tmpfile" -w "%{http_code}" -X "$method" "$BASE_URL$path" -H "Authorization: Bearer $auth")
+    status=$(curl -sS -o "$tmpfile" -w "%{http_code}" -X "$method" "$BASE_URL$path" --oauth2-bearer "$auth")
   elif [[ -n "$body" ]]; then
-    status=$(curl -sS -o "$tmpfile" -w "%{http_code}" -X "$method" "$BASE_URL$path" -H "Content-Type: application/json" -d "$body")
+    status=$(curl -sS -o "$tmpfile" -w "%{http_code}" -X "$method" "$BASE_URL$path" --json "$body")
   else
     status=$(curl -sS -o "$tmpfile" -w "%{http_code}" -X "$method" "$BASE_URL$path")
   fi
