@@ -20,9 +20,8 @@ router.post('/register', async (req, res) => {
     return validationError(res, details);
   }
 
-  if (role !== undefined && role !== 'user' && role !== 'organizer') {
-    return validationError(res, ['role must be either user or organizer']);
-  }
+  // Note: role parameter is intentionally ignored for public registration.
+  // All new accounts are created as 'user'. Organizer promotions must go through admin-only flows.
 
   const existing = await User.findOne({ where: { email } });
   if (existing) {
@@ -34,7 +33,7 @@ router.post('/register', async (req, res) => {
     name,
     email,
     passwordHash,
-    role: role === 'organizer' ? 'organizer' : 'user',
+    role: 'user',
   });
 
   return res.status(201).json({ id: user.id, name: user.name, email: user.email, role: user.role });

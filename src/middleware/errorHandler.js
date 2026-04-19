@@ -31,6 +31,13 @@ function errorHandler(err, req, res, next) {
     });
   }
 
+  if (err && err.name === 'SequelizeForeignKeyConstraintError') {
+    return res.status(400).json({
+      error: 'Foreign key constraint error',
+      details: [err.message],
+    });
+  }
+
   if (err && (
     err.name === 'SequelizeConnectionError' ||
     err.name === 'SequelizeConnectionRefusedError' ||

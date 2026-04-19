@@ -1,6 +1,6 @@
 'use strict';
 const express = require('express');
-const { Event, User, Attendance } = require('../database');
+const { Event, User, Attendance, Group } = require('../database');
 const { authenticate } = require('../middleware/auth');
 const { authorize } = require('../middleware/authorize');
 const { validateIdParam } = require('../middleware/validateId');
@@ -51,6 +51,15 @@ router.post('/', authenticate, authorize('organizer'), async (req, res) => {
   if (details.length > 0) {
     return validationError(res, details);
   }
+
+  // Validate that groupId exists if provided
+  if (groupId !== undefined && groupId !== null) {
+    const group = await Group.findByPk(groupId);
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+  }
+
   const event = await Event.create({
     organizerId: req.user.id,
     name,
@@ -87,6 +96,14 @@ router.put('/:id', authenticate, authorize('organizer'), validateIdParam('id'), 
 
   if (details.length > 0) {
     return validationError(res, details);
+  }
+
+  // Validate that groupId exists if provided
+  if (groupId !== undefined && groupId !== null) {
+    const group = await Group.findByPk(groupId);
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
   }
 
   await event.update({ name, location, date, time, description, groupId });
