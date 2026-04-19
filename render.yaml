@@ -19,7 +19,7 @@ services:
           name: appdev1final-db
           property: connectionString
       - key: DB_SSL
-        value: false
+        value: "true"
 
 databases:
   - name: appdev1final-db

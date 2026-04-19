@@ -22,6 +22,9 @@
     "url": "https://github.com/TLAllen662/AppDev1Final-Tanner-Allen/issues"
   },
   "homepage": "https://github.com/TLAllen662/AppDev1Final-Tanner-Allen#readme",
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
