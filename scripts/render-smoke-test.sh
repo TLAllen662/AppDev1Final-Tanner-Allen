@@ -80,25 +80,16 @@ request() {
   local tmpfile
   tmpfile="$(mktemp)"
 
-  local -a curl_args
-  curl_args=(
-    -sS
-    -o "$tmpfile"
-    -w "%{http_code}"
-    -X "$method"
-    "$BASE_URL$path"
-  )
-
-  if [[ -n "$auth" ]]; then
-    curl_args+=( -H "Authorization: Bearer $auth" )
-  fi
-
-  if [[ -n "$body" ]]; then
-    curl_args+=( -H "Content-Type: application/json" -d "$body" )
-  fi
-
   local status
-  status=$(curl "${curl_args[@]}")
+  if [[ -n "$auth" && -n "$body" ]]; then
+    status=$(curl -sS -o "$tmpfile" -w "%{http_code}" -X "$method" "$BASE_URL$path" -H "Authorization: Bearer $auth" -H "Content-Type: application/json" -d "$body")
+  elif [[ -n "$auth" ]]; then
+    status=$(curl -sS -o "$tmpfile" -w "%{http_code}" -X "$method" "$BASE_URL$path" -H "Authorization: Bearer $auth")
+  elif [[ -n "$body" ]]; then
+    status=$(curl -sS -o "$tmpfile" -w "%{http_code}" -X "$method" "$BASE_URL$path" -H "Content-Type: application/json" -d "$body")
+  else
+    status=$(curl -sS -o "$tmpfile" -w "%{http_code}" -X "$method" "$BASE_URL$path")
+  fi
 
   echo "$status|$tmpfile"
 }
